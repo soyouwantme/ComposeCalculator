@@ -1,5 +1,7 @@
 package com.example.composecalculator
 
+import android.content.res.Configuration
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -32,17 +34,22 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            ComposeCalculatorTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colors.background
-                ) {
-                    Calculator()
-                }
+            CalculatorContext(true)
+        }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
+            setContent {
+                CalculatorContext(true)
+            }
+        } else if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            setContent {
+                CalculatorContext(false)
             }
         }
     }
-    
 }
 
 val buttonList = arrayOf(
@@ -76,9 +83,72 @@ val buttonList = arrayOf(
         CalBtnBean("=", Color.White, OrangeColorList)
     )
 )
+val landScapeButtonList = arrayOf(
+    arrayOf(
+        CalBtnBean("2nd", Color.White, GrayColorList),
+        CalBtnBean("(", Color.White, GrayColorList),
+        CalBtnBean(")", Color.White, GrayColorList),
+        CalBtnBean("x^-1", Color.White, GrayColorList),
+        CalBtnBean("C", Color.White, GrayColorList),
+        CalBtnBean("+/-", Color.White, GrayColorList),
+        CalBtnBean("%", Color.White, GrayColorList),
+        CalBtnBean("/", Color.White, GrayColorList)
+    ),
+    arrayOf(
+        CalBtnBean("x^2", Color.White, GrayColorList),
+        CalBtnBean("x^3", Color.White, GrayColorList),
+        CalBtnBean("x^y", Color.White, GrayColorList),
+        CalBtnBean("x!", Color.White, GrayColorList),
+        CalBtnBean("7", BlackFont, WhiteColorList),
+        CalBtnBean("8", BlackFont, WhiteColorList),
+        CalBtnBean("9", BlackFont, WhiteColorList),
+        CalBtnBean("x", Color.White, GrayColorList)
+    ),
+    arrayOf(
+        CalBtnBean("sin", Color.White, GrayColorList),
+        CalBtnBean("cos", Color.White, GrayColorList),
+        CalBtnBean("tan", Color.White, GrayColorList),
+        CalBtnBean("ln", Color.White, GrayColorList),
+        CalBtnBean("4", BlackFont, WhiteColorList),
+        CalBtnBean("5", BlackFont, WhiteColorList),
+        CalBtnBean("6", BlackFont, WhiteColorList),
+        CalBtnBean("-", Color.White, GrayColorList)
+    ),
+    arrayOf(
+        CalBtnBean("sinh", Color.White, GrayColorList),
+        CalBtnBean("cosh", Color.White, GrayColorList),
+        CalBtnBean("tanh", Color.White, GrayColorList),
+        CalBtnBean("log", Color.White, GrayColorList),
+        CalBtnBean("1", BlackFont, WhiteColorList),
+        CalBtnBean("2", BlackFont, WhiteColorList),
+        CalBtnBean("3", BlackFont, WhiteColorList),
+        CalBtnBean("+", Color.White, GrayColorList),
+    ),
+    arrayOf(
+        CalBtnBean("Rad", Color.White, GrayColorList),
+        CalBtnBean("Pi", Color.White, GrayColorList),
+        CalBtnBean("EE", Color.White, GrayColorList),
+        CalBtnBean("Rand", Color.White, GrayColorList),
+        CalBtnBean("0", BlackFont, WhiteColorList),
+        CalBtnBean(".", BlackFont, WhiteColorList),
+        CalBtnBean("=", Color.White, OrangeColorList)
+    )
+)
 
 @Composable
-fun Calculator() {
+fun CalculatorContext(isPortrait: Boolean) {
+    ComposeCalculatorTheme {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colors.background
+        ) {
+            Calculator(isPortrait)
+        }
+    }
+}
+
+@Composable
+fun Calculator(isPortrait: Boolean) {
     var state by remember {
         mutableStateOf(CalState())
     }
@@ -86,7 +156,7 @@ fun Calculator() {
     Column(
         Modifier
             .background(BackgroundGray)
-            .padding(horizontal = 10.dp)
+            .padding(10.dp)
     ) {
         Text(
             modifier = Modifier
@@ -102,11 +172,16 @@ fun Calculator() {
             Modifier
                 .wrapContentHeight()
                 .fillMaxWidth()
-                .padding(bottom = 40.dp),
-            state.num2
+                .padding(bottom = if (isPortrait) 40.dp else 20.dp),
+            state.num2,
+            isPortrait
         )
-        Column(Modifier.fillMaxSize()) {
-            buttonList.forEach {
+        Column(
+            Modifier.fillMaxSize(),
+            Arrangement.spacedBy(10.dp)
+        ) {
+            val btnList = if (isPortrait) buttonList else landScapeButtonList
+            btnList.forEach {
                 Row(
                     Modifier.weight(1f),
                     Arrangement.spacedBy(10.dp)
@@ -115,8 +190,9 @@ fun Calculator() {
                         CalBtn(
                             Modifier
                                 .weight(if (it.text == "0") 2f else 1f)
-                                .aspectRatio(if (it.text == "0") 2f else 1f),
-                            it
+                                .fillMaxSize(),
+                            it,
+                            isPortrait
                         ) {
                             state = calculate(state, it.text)
                         }
@@ -154,7 +230,7 @@ fun calculate(curState: CalState, input: String): CalState {
 }
 
 @Composable
-fun Screen(modifier: Modifier, result: Int) {
+fun Screen(modifier: Modifier, result: Int, isPortrait: Boolean) {
     val resList = result.toString().toCharArray()
     Box(
         modifier
@@ -169,21 +245,21 @@ fun Screen(modifier: Modifier, result: Int) {
         Row(
         ) {
             resList.map {
-                DigitNum(it, 0.2f)
+                DigitNum(it, if (isPortrait) 0.2f else 0.1f)
             }
         }
     }
 }
 
 @Composable
-fun CalBtn(modifier: Modifier, symbol: CalBtnBean, onClick: () -> Unit = {}) {
+fun CalBtn(modifier: Modifier, symbol: CalBtnBean, isPortrait: Boolean, onClick: () -> Unit = {}) {
     Box(
         modifier
             .background(
                 brush = Brush.verticalGradient(
                     symbol.backgroundColors
                 ),
-                shape = RoundedCornerShape(15)
+                shape = RoundedCornerShape(15.dp)
             )
             .border(2.dp, Color(175, 176, 173), RoundedCornerShape(10.dp))
             .clickable { onClick.invoke() },
@@ -191,7 +267,7 @@ fun CalBtn(modifier: Modifier, symbol: CalBtnBean, onClick: () -> Unit = {}) {
     ) {
         Text(
             symbol.text,
-            fontSize = 40.sp,
+            fontSize = if (isPortrait) 40.sp else 20.sp,
             color = symbol.textColor,
             fontFamily = FontFamily.SansSerif,
             fontWeight = FontWeight.Black
@@ -206,6 +282,6 @@ fun CalBtn(modifier: Modifier, symbol: CalBtnBean, onClick: () -> Unit = {}) {
 @Composable
 fun DefaultPreview() {
     ComposeCalculatorTheme {
-        Calculator()
+        Calculator(false)
     }
 }
